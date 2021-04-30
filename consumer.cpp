@@ -1,6 +1,8 @@
 #include<Consumer-Producer-API/consumer-context.hpp>
 #include<iostream>
 #include<fstream>
+#include<chrono>
+#include<string>
 
 using namespace ndn;
 
@@ -62,7 +64,7 @@ public:
   void
   createFilefromBuffer(const uint8_t* buffer, size_t bufferSize)
   {
-    std::ofstream outfile("test2.png", std::ofstream::binary);
+    std::ofstream outfile("test.json", std::ofstream::binary);
     outfile.write((const char*)buffer, bufferSize);
     outfile.close();
 
@@ -79,27 +81,40 @@ int main(int argc, char* argv[])
 {
   CallbackContainer callback;
 
-  Name pilotConsumerName("test/producer/info");
+  //std::chrono::system_clock::time_point start, end;
+  
+
+  /*Name pilotConsumerName("test/producer/info");
   Consumer pilotConsumer(pilotConsumerName, SDR);
   pilotConsumer.setContextOption(MUST_BE_FRESH_S, true);
   pilotConsumer.setContextOption(INTEREST_LIFETIME, 5000);
   pilotConsumer.setContextOption(DATA_ENTER_CNTX, (ConsumerDataCallback)bind(&CallbackContainer::processInfoData, &callback, _1, _2));
   pilotConsumer.setContextOption(INTEREST_LEAVE_CNTX, (ConsumerInterestCallback)bind(&CallbackContainer::leavingInfoInterest, &callback, _1, _2));
-  pilotConsumer.consume("test.png");
+  pilotConsumer.consume("test.jpg");*/
 
   Name contentConsumerName("/test/producer/content");
-  Name functionName("/A");
+  Name functionName("/C");
   Consumer contentConsumer(contentConsumerName, RDR);
   contentConsumer.setContextOption(MUST_BE_FRESH_S, true);
-  contentConsumer.setContextOption(INTEREST_LIFETIME, 10000);
+  contentConsumer.setContextOption(INTEREST_LIFETIME, 1000000);
   contentConsumer.setContextOption(MAX_WINDOW_SIZE, 300);
   contentConsumer.setContextOption(CONTENT_RETRIEVED, (ConsumerContentCallback)bind(&CallbackContainer::processContentPayload, &callback, _1, _2, _3));
   contentConsumer.setContextOption(DATA_ENTER_CNTX, (ConsumerDataCallback)bind(&CallbackContainer::processContentData, &callback, _1, _2));
   contentConsumer.setContextOption(INTEREST_LEAVE_CNTX, (ConsumerInterestCallback)bind(&CallbackContainer::leavingContentInterest, &callback, _1, _2));
   contentConsumer.setContextOption(FUNCTION, functionName);
-  contentConsumer.setContextOption(FINAL_BLOCK_ID, callback.m_finalBlockId);
-  std::cout << callback.m_finalBlockId << std::endl;
-  contentConsumer.consume("test.png");
+  //contentConsumer.setContextOption(FINAL_BLOCK_ID, callback.m_finalBlockId);
+  //std::cout << callback.m_finalBlockId << std::endl;
+  //start = std::chrono::system_clock::now();
+  contentConsumer.consume("test.jpg");
+  //end = std::chrono::system_clogck::now();
+  //double time = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end -start).count() / 1000.0);
+  //std::printf("time %lf[ms]\n", time);
 
+  //std::string filename = "test.txt";
+  //std::ofstream writing_file;
+  //writing_file.open(filename, std::ios::app);
+  //writing_file << time << std::endl;
+  //writing_file.close();
+  
   return 0;
 }
