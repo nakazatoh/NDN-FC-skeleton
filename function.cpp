@@ -91,7 +91,7 @@ private:
       if(segment == m_largerFinalBlockNumber)
       {
         sleep(1);
-        m_dataBuffer.clear();
+//        m_dataBuffer.clear();
         m_receiveBuffer.clear();
         m_interestSegmentCounter.clear();
         m_lastReassembledSegment = 0;
