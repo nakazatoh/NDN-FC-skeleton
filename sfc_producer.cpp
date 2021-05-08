@@ -101,10 +101,35 @@ namespace sfc {
     if (m_options.isVerbose)
       std::cout << "bufferSize: " << buffer.size() << std::endl;
 
-    std::ifstream infile(loadFilename, std::ifstream::binary);
+    std::ifstream infile;
+    std::ios_base::iostate exceptionMask = infile.exceptions() | std::ios::failbit;
+    infile.exceptions(exceptionMask);
+    try {
+      infile.open(loadFilename, std::ifstream::binary);
+      //infile.exceptions(std::ios_base::failbit);
+    }
+    catch (const std::exception& e) {
+      std::cerr << "file could not be opened" << std::endl;
+    }
+/*
+    catch (std::ios_base::failure& e) {
+      if (e.code() == std::make_error_contion(std::io_errc:stream)) {
+        std::cerr << "Stream error!\n";
+      }
+      else {
+        std::cerr << "Unknown failure in opening file.\n";
+      }
+    }
+*/
+    infile.exceptions(std::ios::goodbit);
     while (infile.good()) {
       Name tmp_name = name;
-      infile.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+      try {
+        infile.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+      }
+      catch (std::ios_base::failure e) {
+        std::cerr << e.what() << std::endl;
+      }
       const auto nCharsRead = infile.gcount();
       if (nCharsRead > 0) {
         auto data = make_shared<Data>(tmp_name.appendSegment(m_store.size()));
