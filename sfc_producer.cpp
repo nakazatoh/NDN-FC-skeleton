@@ -239,12 +239,12 @@ namespace sfc {
     return 2;
   }
   */
-  if (!prefix.empty()) {
+  if (prefix.empty()) {
     std::cerr << "ERROR: '" << prefix << "' is not a valid naming convention\n";
     return 2;
   }
-  if (!fname.empty()) {
-    std::cerr << "ERROR: '" << fname << "' is not a valid naming convention\n";
+  if (fname.empty()) {
+    std::cerr << "ERROR: '" << fname << "' is not a proper filename\n";
     return 2;
   }
 
