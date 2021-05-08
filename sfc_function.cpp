@@ -228,7 +228,8 @@ namespace sfc {
     if (!m_options.isQuiet)
       std::cout << "Func::populateStore: filename: " << loadFilename << " executedFunction: " << executedFunction << std::endl;
     m_store.clear();
-    Name name(m_prefix).append(m_filename);
+    Name name(m_prefix);
+    name.append(m_filename);
     Block nameOnWire = name.wireEncode();
     size_t bytesOccupiedByName = nameOnWire.size();
 
@@ -353,9 +354,9 @@ namespace sfc {
   static void
   usage (std::ostream& os, const std::string& programName, const po::options_description& desc)
   {
-    os << "Usage: " << programName << "[options] ndn:/name\n"
+    os << "Usage: " << programName << "[options] /function-name\n"
     << "\n"
-    << "Publish data under the speciafied prefix.\n"
+    << "Apply the specified function on Data packets.\n"
     << desc;
   }
 

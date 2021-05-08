@@ -29,7 +29,7 @@ namespace ndn {
 namespace sfc {
 
 
-  Producer::Producer(Name& prefix, std::string& loadFilename, Face& face, KeyChain& keyChain, const Options& opts)
+  Producer::Producer(Name& prefix, const std::string& loadFilename, Face& face, KeyChain& keyChain, const Options& opts)
     :m_prefix(prefix)
     ,m_face(face)
     ,m_keyChain(keyChain)
@@ -37,6 +37,7 @@ namespace sfc {
   {
     m_fullContentName = prefix;
     m_fullContentName.append(loadFilename);
+    m_filename = Name(loadFilename);
     populateStore(loadFilename);
   }
 
@@ -59,8 +60,8 @@ namespace sfc {
       std::cout << "--------------------------------------------" << std::endl;
     }
 
-    Name& name = interest.getName();
-    if (name == m_fullContentName + 1 && name[-1].isSegment()) {
+    Name name(interest.getName());
+    if (name.size() == m_fullContentName.size() + 1 && name[-1].isSegment()) {
       uint64_t segment = interest.getName().get(-1).toSegment();
       if (segment < m_store.size()) {
         m_face.put(*(m_store[segment]));
@@ -75,12 +76,13 @@ namespace sfc {
   /*********************************************************************************/
   /************************DATA SEGMENTATION****************************************/
   void
-  Producer::populateStore(std::string& loadFilename)
+  Producer::populateStore(const std::string& loadFilename)
   {
     if (!m_options.isQuiet)
       std::cout << "Producer::populateStore: filename: " << loadFilename << std::endl;
     m_store.clear();
-    Name name(m_prefix).append(m_filename);
+    Name name(m_prefix);
+    name.append(m_filename);
     Block nameOnWire = name.wireEncode();
     size_t bytesOccupiedByName = nameOnWire.size();
 
@@ -108,9 +110,6 @@ namespace sfc {
         auto data = make_shared<Data>(tmp_name.appendSegment(m_store.size()));
         if (m_options.isVerbose)
           std::cout << "preparing Data: " << data->getName() << " segment #: " << m_store.size() << std::endl;
-        data->setFunction(funcname);
-        if (m_options.isVerbose)
-          std::cout << "functionName: " << funcname << std::endl;
         data->setFreshnessPeriod(m_options.freshnessPeriod);
         data->setContent(buffer.data(), static_cast<size_t>(nCharsRead));
         m_store.push_back(data);
@@ -140,7 +139,7 @@ namespace sfc {
     m_face.shutdown();
   }
 /***************************************************************************************/
-
+/*
   unique_ptr<Name>
   Func::getPrefix(const Name& name){
     std::string prefix;
@@ -151,7 +150,7 @@ namespace sfc {
     }
     return unique_ptr<Name>{new Name(prefix)};
   }
-  /*
+
   unique_ptr<Name>
   Func::getFilename(Name& name){
     unique_ptr<Name> p {new Name(name.get(-2).toUri())};
@@ -163,9 +162,9 @@ namespace sfc {
   static void
   usage (std::ostream& os, const std::string& programName, const po::options_description& desc)
   {
-    os << "Usage: " << programName << "[options] ndn:/name\n"
+    os << "Usage: " << programName << "[options] ndn:/name filename\n"
     << "\n"
-    << "Publish data under the speciafied prefix.\n"
+    << "Publish data in file under the speciafied prefix.\n"
     << desc;
   }
 
@@ -174,7 +173,7 @@ namespace sfc {
   {
   const std::string programName(argv[0]);
 
-  Func::Options opts;
+  Producer::Options opts;
   std::string prefix, fname; //, nameConv, signingStr;
 
   po::options_description visibleDesc("Options");
@@ -204,7 +203,7 @@ namespace sfc {
   optDesc.add(visibleDesc).add(hiddenDesc);
 
   po::positional_options_description p;
-  p.add("name", 1).add("filename");
+  p.add("name", 1).add("filename", 1);
 
   po::variables_map vm;
   try {
@@ -229,12 +228,6 @@ namespace sfc {
     std::cout << "ndnputchunks " << tools::VERSION << "\n";
     return 0;
   }
-  */
-  if (funcName.empty()) {
-    usage(std::cerr, programName, visibleDesc);
-    return 2;
-  }
-  /*
   if (nameConv == "marker" || nameConv == "m" || nameConv == "1") {
     name::setConventionEncoding(name::Convention::MARKER);
   }
@@ -246,12 +239,12 @@ namespace sfc {
     return 2;
   }
   */
-  if (!name.empty()) {
-    std::cerr << "ERROR: '" << name << "' is not a valid naming convention\n";
+  if (!prefix.empty()) {
+    std::cerr << "ERROR: '" << prefix << "' is not a valid naming convention\n";
     return 2;
   }
-  if (!filename.empty()) {
-    std::cerr << "ERROR: '" << filename << "' is not a valid naming convention\n";
+  if (!fname.empty()) {
+    std::cerr << "ERROR: '" << fname << "' is not a valid naming convention\n";
     return 2;
   }
 
@@ -282,7 +275,8 @@ namespace sfc {
   try {
     Face face;
     KeyChain keyChain;
-    Producer prod(prefix, fname, face, keyChain, opts);
+    Name prefixName(prefix);
+    Producer prod(prefixName, fname, face, keyChain, opts);
     prod.run();
   }
   catch (const std::exception& e) {

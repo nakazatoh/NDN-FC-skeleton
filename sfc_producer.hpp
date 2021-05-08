@@ -70,7 +70,7 @@ public:
   /**
    * @brief Create the network processing part of function execution
    */
-  Producer(const Name& prefix, Face& face, KeyChain& keyChain, const Options& opts);
+  Producer(Name& prefix, const std::string& loadFilename, Face& face, KeyChain& keyChain, const Options& opts);
     
 
   /**
@@ -104,20 +104,14 @@ private:
    * @return Number of data packets contained in the store after the operation
    */
   void
-  populateStore(std::string& loadFilename);
-
-  void
-  onNack(const Interest& interest, const lp::Nack& nack);
-
-  void
-  onTimeout(const Interest& interest);
+  populateStore(const std::string& loadFilename);
 
   void
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
-private:
-  unique_ptr<Name>
-  getPrefix(const Name& name);
+//private:
+//  unique_ptr<Name>
+//  getPrefix(const Name& name);
 
 //  unique_ptr<Name>
 //  getFilename(Name& name);
@@ -126,7 +120,7 @@ private:
 
 //  Name m_versionedPrefix;
   Name& m_prefix;
-  Name& m_filename;
+  Name m_filename;
   Face& m_face;
   KeyChain& m_keyChain;
   const Options m_options;

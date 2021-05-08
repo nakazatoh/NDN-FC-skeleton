@@ -48,3 +48,8 @@ def build (bld):
         features=['cxx', 'cxxprogram'],
         source='sfc_function.cpp',
         use='NDN_CXX PYTHON')
+
+    bld(target='sfc_producer',
+        features=['cxx', 'cxxprogram'],
+        source='sfc_producer.cpp',
+        use='NDN_CXX PYTHON')
