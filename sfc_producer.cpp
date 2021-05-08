@@ -43,7 +43,7 @@ namespace sfc {
   void
   Producer::run()
   {
-    m_face.setInterestFilter(m_funcName,
+    m_face.setInterestFilter(m_fullContentName,
                              bind(&Producer::onInterest, this, _1, _2),
                              ndn::RegisterPrefixSuccessCallback(),
                              bind(&Producer::onRegisterFailed, this, _1, _2));
@@ -52,187 +52,35 @@ namespace sfc {
   }
  
   void
-  Func::onInterest(const ndn::InterestFilter& filter, const Interest& interest)
+  Producer::onInterest(const ndn::InterestFilter& filter, const Interest& interest)
   {
     if (!m_options.isQuiet) {
       std::cout << "<< Interest: " << interest.getName().get(-1).toSegment() << std::endl;
       std::cout << "--------------------------------------------" << std::endl;
     }
-    interest.removeHeadFunction();
-    interest.refreshNonce();
 
-    uint64_t segment = interest.getName().get(-1).toSegment();
-    m_interestSegmentCounter.insert(segment);
-    if (segment > 0) {
-      m_face.put(*(m_store[segment]));
-      if (!m_options.isQuiet)  {
-        std::cout << "Sending Data for Seg.: " << segment << std::endl;
-        std::cout << "--------------------------------------------" << std::endl;
-      }
-      if(segment == m_outgoingFinalBlockNumber) {
-        sleep(1);
-        m_interestSegmentCounter.clear();
-//        std::exit(0);
+    Name& name = interest.getName();
+    if (name == m_fullContentName + 1 && name[-1].isSegment()) {
+      uint64_t segment = interest.getName().get(-1).toSegment();
+      if (segment < m_store.size()) {
+        m_face.put(*(m_store[segment]));
+        if (!m_options.isQuiet)  {
+          std::cout << "Sending Data for Seg.: " << segment << std::endl;
+          std::cout << "--------------------------------------------" << std::endl;
+        }  
       }
     }
-    else { // segment == 0
-      m_face.expressInterest(interest,
-                              bind(&Func::onData, this, _1, _2),
-                              bind(&Func::onNack, this, _1, _2),
-                              bind(&Func::onTimeout, this, _1));
-    }
-    //std::cout << interest.getFunction() << std::endl;
-  }
-
-  void
-  Func::onData(const Interest& interest, const Data& data)
-  {
-    if (!m_options.isQuiet) {
-      std::cout << "Data: " << data.getName() << std::endl;
-      std::cout << "Prefix: " << *(getPrefix(data.getName())) << std::endl;
-      std::cout << "Segment No.: " << data.getName().get(-1).toSegment() << std::endl;
-      std::cout << "Final Block No.: " << data.getFinalBlock()->toSegment() << std::endl;
-    }
-
-    Function executedFunction(data.getFunction());
-
-    //Add Segments to Buffer
-    if (m_options.isVerbose)
-      std::cout << "Loading receiveBuffer: " << data.getName().get(-1).toSegment() << std::endl;
-    m_receiveBuffer[data.getName().get(-1).toSegment()] = data.shared_from_this();
-    //    reassembleSegments();
-
-    if (data.getName().get(-1).toSegment() == 0) {
-      //    if (m_receiveBuffer.empty()) {
-      m_prefix = *(getPrefix(data.getName()));
-      m_filename = Name(data.getName().get(-2).toUri());
-      m_incomingFinalBlockNumber = data.getFinalBlock()->toSegment();
-      if (!m_options.isQuiet) {
-        std::cout << "Prefix: " << m_prefix << std::endl;
-        std::cout << "Filename: " << m_filename << std::endl;
-      }
-
-      if(m_incomingFinalBlockNumber > 0) {
-        if (!m_options.isQuiet)
-          std::cout << "-------------------------------------------------------" << std::endl;
-        for(uint64_t i = 1; i <= m_incomingFinalBlockNumber; i++)
-        {
-          Name name(m_prefix);
-          name.append(m_filename);
-          name.appendSegment(i);
-          Interest newInterest(name);
-          newInterest.setFunction(interest.getFunction());
-          newInterest.setInterestLifetime(time::milliseconds(10000));
-          if (!m_options.isQuiet)
-            std::cout << "Sending Interests: " << name << std::endl;
-          m_face.expressInterest(newInterest,
-                                 bind(&Func::onData, this,  _1, _2),
-                                 bind(&Func::onNack, this, _1, _2),
-                                 bind(&Func::onTimeout, this, _1));
-        }
-      }
-    }
-
-    //    if(data.getName().get(-1).toSegment() == m_finalBlockNumber)
-    if (m_receiveBuffer.size() == m_incomingFinalBlockNumber + 1) {
-        Function executedFunction(data.getFunction());
-
-        reassembleSegments();
-        std::string outputFilename = data.getName().get(-2).toUri(); //"test.png"
-        createFile(outputFilename);
-        m_contentBuffer.clear();
-        
-       	std::string s = "python3 clientyolo.py " + outputFilename;
-        if (!m_options.isQuiet) 
-          std::cout << "outputFilename: " << outputFilename << std::endl;
-
-	      int status = system(s.c_str());
-        if (status < 0) {
-          std::cout << "Error: " << strerror(errno) << std::endl;
-        }
-        else if (m_options.isVerbose) {
-          if (WIFEXITED(status)) {
-            std::cout << "Program returned normally, exit code " << WEXITSTATUS(status) << std::endl;
-          }
-          else {
-            std::cout << "Program exited abnormaly" << std::endl;
-          }
-        }
- 
-        /**APP GOES HERE**/
-        
-        std::string loadFilename = data.getName().get(-2).toUri(); //"test.png"
-        populateStore(outputFilename, executedFunction);
-
-	      std::string rm = "rm " + outputFilename;
-	      status = system(rm.c_str());
-        if (status < 0) {
-          std::cout << "Error: " << strerror(errno) << std::endl;
-        }
-        else if (m_options.isVerbose) {
-          if (WIFEXITED(status)) {
-            std::cout << "Program returned normally, exit code " << WEXITSTATUS(status) << std::endl;
-          }
-          else {
-            std::cout << "Program exited abnormaly" << std::endl;
-          }
-        }
-
-        m_face.put(*(m_store[0]));
-      }
-    if (!m_options.isQuiet)
-      std::cout << "-------------------------------------------------------" << std::endl;
-  }
-
-  /***********************************DATA REASSEMBLY*************************************/
-  void
-  Func::reassembleSegments()
-  {
-    for (auto i = m_receiveBuffer.cbegin(); i != m_receiveBuffer.cend(); ++i) {
-      addToBuffer(*(i->second));
-    }
-    m_receiveBuffer.clear();
-  }
-
-  void
-  Func::addToBuffer(const Data& data)
-  {
-    const Block content = data.getContent();
-    m_contentBuffer.insert(m_contentBuffer.end(), &content.value()[0], &content.value()[content.value_size()]);
-    if (m_options.isVerbose)
-      std::cout << "Adding to Buffer, value size: " << content.value_size() << std::endl;
-
-    return;
-  }
-
-  void
-  Func::createFile(std::string& outputFilename)
-  {
-    if (!m_options.isQuiet) {
-      std::cout << "---------------------------------------------------" << std::endl;
-      std::cout << "Creating File" << std::endl;
-    }
-    std::ofstream outfile(outputFilename, std::ofstream::binary);
-    outfile.write((char*)m_contentBuffer.data(), m_contentBuffer.size());
-    if (!m_options.isQuiet)
-      std::cout << "Orig. BufferSize: " << m_contentBuffer.size() << std::endl;
-    outfile.close();
-    if (!m_options.isQuiet)
-      std::cout << "Success" << std::endl;
-
-    return;
   }
 
   /*********************************************************************************/
-
   /************************DATA SEGMENTATION****************************************/
   void
   Producer::populateStore(std::string& loadFilename)
   {
     if (!m_options.isQuiet)
-      std::cout << "Func::populateStore: filename: " << loadFilename << " executedFunction: " << executedFunction << std::endl;
+      std::cout << "Producer::populateStore: filename: " << loadFilename << std::endl;
     m_store.clear();
-    Name name(m_prefix.append(m_filename));
+    Name name(m_prefix).append(m_filename);
     Block nameOnWire = name.wireEncode();
     size_t bytesOccupiedByName = nameOnWire.size();
 
@@ -251,9 +99,6 @@ namespace sfc {
     if (m_options.isVerbose)
       std::cout << "bufferSize: " << buffer.size() << std::endl;
 
-    //    const uint8_t* buffer;
-    //    size_t bufferSize;
-    //    std::tie(unique_ptr<uint8_t> buffer, size_t bufferSize) = loadFile(loadFilename);
     std::ifstream infile(loadFilename, std::ifstream::binary);
     while (infile.good()) {
       Name tmp_name = name;
@@ -285,24 +130,6 @@ namespace sfc {
   /*********************************************************************************/
 
   /************************Callbacks************************************************/
-  void
-  Producer::onNack(const Interest& interest, const lp::Nack& nack)
-  {
-    if (!m_options.isQuiet) {
-      std::cout << "received Nack with reason " << nack.getReason()
-                << " for interest " << interest << std::endl;
-      std::cout << "---------------------------------------------" << std::endl;
-    }
-  }
-
-  void
-  Producer::onTimeout(const Interest& interest)
-  {
-    if (!m_options.isQuiet) {
-      std::cout << "Timeout Seg No.: " << interest.getName().get(-1).toSegment() << std::endl;
-      std::cout << "---------------------------------------------" << std::endl;
-    }
-  }
 
   void
   Producer::onRegisterFailed(const Name& prefix, const std::string& reason)
