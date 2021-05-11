@@ -118,9 +118,9 @@ namespace sfc {
           name.appendSegment(i);
           Interest newInterest(name);
           newInterest.setFunction(interest.getFunction());
-          newInterest.setInterestLifetime(interest.getInterestLifeTime());
+          newInterest.setInterestLifetime(interest.getInterestLifetime());
           //newInterest.setInterestLifetime(time::milliseconds(m_options.interestLifeTime));
-          newInterest.setCanBePrefix(false);
+          // newInterest.setCanBePrefix(false);
           // newInterest.setMustBeFresh(m_options.mustBeFresh);
           newInterest.setMustBeFresh(interest.getMustBeFresh());
           if (!m_options.isQuiet)

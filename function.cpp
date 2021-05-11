@@ -46,10 +46,10 @@ class Func
 {
 public:
   Func():
+  m_producer("/"),
   m_lastReassembledSegment(0),
   m_finalBlockNumber(std::numeric_limits<uint64_t>::max()),
-  m_largerFinalBlockNumber(std::numeric_limits<uint64_t>::max()),
-  m_producer("/")
+  m_largerFinalBlockNumber(std::numeric_limits<uint64_t>::max())
   {}
 
   void
@@ -130,7 +130,7 @@ private:
       m_prefix = getPrefix(data.getName());
       m_producer.setContextOption(PREFIX, m_prefix);
       m_filename = getFilename(data.getName());
-      m_finalBlockNumber = data.getFinalBlockId().toSegment();
+      m_finalBlockNumber = data.getFinalBlock()->toSegment();
       std::cout << "Prefix: " << m_prefix << std::endl;
       std::cout << "Filename: " << m_filename << std::endl;
 
@@ -292,7 +292,7 @@ private:
   ndn::Name
   getPrefix(ndn::Name name){
     std::string prefix;
-    for(int i = 0; i < name.size()-2; i++) //Removes Segment and file name
+    for(int i = 0; i < int(name.size())-2; i++) //Removes Segment and file name
     {
       prefix.append("/");
       prefix.append(name.get(i).toUri());
