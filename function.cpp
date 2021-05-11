@@ -117,7 +117,7 @@ private:
     std::cout << "Data: " << data.getName() << std::endl;
     std::cout << "Prefix: " << getPrefix(data.getName()) << std::endl;
     std::cout << "Segment No.: " << data.getName().get(-1).toSegment() << std::endl;
-    std::cout << "Final Block No.: " << data.getFinalBlockId().toSegment() << std::endl;
+    std::cout << "Final Block No.: " << data.getFinalBlock()->toSegment() << std::endl;
 
     ndn::Function executedFunction(data.getFunction());
 

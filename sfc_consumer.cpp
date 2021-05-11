@@ -23,13 +23,13 @@
 
 //#include <Python.h>
 
-#include "sfc_function.hpp"
+#include "sfc_consumer.hpp"
 
 namespace ndn {
 namespace sfc {
 
 
-  Consumer::Consumer(Name& contentName, Name& funcName, Face& face, const Options& opts)
+  Consumer::Consumer(Name& contentName, Function& funcName, Face& face, const Options& opts)
     :m_contentName(contentName)
     ,m_funcName(funcName)
     ,m_face(face)
@@ -39,11 +39,14 @@ namespace sfc {
   void
   Consumer::run()
   {
-  Interest interest = Interest()
-                  .setName(Name(m_contentName).append(m_funcName).appendSegment(0))
-                  .setCanBePrefix(false)
+    if (m_options.isVerbose) {
+      std::cout << "Consumer::run() contentName: " << m_contentName << " function: " << m_funcName << std::endl;
+    }
+    Interest interest = Interest()
+                  .setName(m_contentName.appendSegment(0))
                   .setMustBeFresh(m_options.mustBeFresh)
                   .setInterestLifetime(m_options.interestLifetime);
+    interest.setFunction(m_funcName);
     
     m_face.expressInterest(interest,
                           bind(&Consumer::onData, this, _1, _2),
@@ -91,8 +94,8 @@ namespace sfc {
           name.appendSegment(i);
           Interest newInterest(name);
           newInterest.setFunction(interest.getFunction());
-          newInterest.setInterestLifetime(m_options.interestLifeTime);
-          newInterest.setCanBePrefix(false);
+          newInterest.setInterestLifetime(m_options.interestLifetime);
+          // newInterest.setCanBePrefix(false);
           newInterest.setMustBeFresh(m_options.mustBeFresh);
           if (!m_options.isQuiet)
             std::cout << "Sending Interests: " << name << std::endl;
@@ -201,7 +204,7 @@ namespace sfc {
   static void
   usage (std::ostream& os, const std::string& programName, const po::options_description& desc)
   {
-    os << "Usage: " << programName << "[options] /function-name\n"
+    os << "Usage: " << programName << "[options] /contetn-name /function-name\n"
     << "\n"
     << "Apply the specified function on Data packets.\n"
     << desc;
@@ -218,14 +221,14 @@ namespace sfc {
   po::options_description visibleDesc("Options");
   visibleDesc.add_options()
     ("help,h",      "print this help message and exit")
-    ("fresh,f",     po::bool_switch(&options.mustBeFresh),
+    ("fresh,f",     po::bool_switch(&opts.mustBeFresh),
                     "only return fresh content (set MustBeFresh on all outgoing Interests)")
-    ("lifetime,l",  po::value<time::milliseconds::rep>()->default_value(options.interestLifetime.count()),
+    ("lifetime,l",  po::value<time::milliseconds::rep>()->default_value(opts.interestLifetime.count()),
                     "lifetime of expressed Interests, in milliseconds")
-    ("pipeline-type,p", po::value<std::string>(&pipelineType)->default_value(pipelineType),
-                        "type of Interest pipeline to use; valid values are: 'fixed', 'aimd', 'cubic'")
-    ("no-version-discovery,D", po::bool_switch(&options.disableVersionDiscovery),
-                               "skip version discovery even if the name does not end with a version component")
+    //("pipeline-type,p", po::value<std::string>(&pipelineType)->default_value(pipelineType),
+    //                    "type of Interest pipeline to use; valid values are: 'fixed', 'aimd', 'cubic'")
+    //("no-version-discovery,D", po::bool_switch(&opts.disableVersionDiscovery),
+    //                           "skip version discovery even if the name does not end with a version component")
     ("quiet,q",     po::bool_switch(&opts.isQuiet), "turn off all non-error output")
     ("verbose,v",   po::bool_switch(&opts.isVerbose), "turn on verbose output (per Interest information)")
     /*    ("version,V",   "print program version and exit") */
@@ -267,7 +270,7 @@ namespace sfc {
     return 0;
   }
   */
-  if (name.empty()) {
+  if (prefix.empty()) {
     usage(std::cerr, programName, visibleDesc);
     return 2;
   }
@@ -295,7 +298,7 @@ namespace sfc {
   try {
     Name contentName(prefix);
     Face face;
-    Name functionName(funcName);
+    Function functionName(funcName);
     Consumer cons(contentName, functionName, face, opts);
     cons.run();
   }

@@ -62,7 +62,7 @@ public:
     // security::SigningInfo signingInfo;
     // time::milliseconds freshnessPeriod = 10_s;
     // std::size_t maxSegmentSize = 2048;
-    time::milliseconds interestLifetime = 10000; //DEFAULT_INTEREST_LIFETIME;
+    time::milliseconds interestLifetime = 10000_s; //DEFAULT_INTEREST_LIFETIME;
     // int maxRetriesOnTimeoutOrNack = 15;
     //bool disableVersionDiscovery = true;
     bool mustBeFresh = false;
@@ -122,8 +122,8 @@ private:
 private:
 
 //  Name m_versionedPrefix;
-  Name& m_contentName
-  Name& m_funcName;
+  Name& m_contentName;
+  Function& m_funcName;
   Face& m_face;
   const Options m_options;
 
