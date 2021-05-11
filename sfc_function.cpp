@@ -118,7 +118,11 @@ namespace sfc {
           name.appendSegment(i);
           Interest newInterest(name);
           newInterest.setFunction(interest.getFunction());
-          newInterest.setInterestLifetime(time::milliseconds(10000));
+          newInterest.setInterestLifetime(interest.getInterestLifeTime());
+          //newInterest.setInterestLifetime(time::milliseconds(m_options.interestLifeTime));
+          newInterest.setCanBePrefix(false);
+          // newInterest.setMustBeFresh(m_options.mustBeFresh);
+          newInterest.setMustBeFresh(interest.getMustBeFresh());
           if (!m_options.isQuiet)
             std::cout << "Sending Interests: " << name << std::endl;
           m_face.expressInterest(newInterest,

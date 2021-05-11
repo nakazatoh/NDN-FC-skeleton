@@ -54,18 +54,18 @@
 namespace ndn {
 namespace sfc {
 
-class Func:noncopyable
+class Consumer:noncopyable
 {
 public:
   struct Options
   {
-    security::SigningInfo signingInfo;
-    time::milliseconds freshnessPeriod = 10_s;
-    std::size_t maxSegmentSize = 2048;
-    //time::milliseconds interestLifetime = 10000; //DEFAULT_INTEREST_LIFETIME;
-    //int maxRetriesOnTimeoutOrNack = 15;
-    //bool disableVersionDiscovery = false;
-    //bool mustBeFresh = false;
+    // security::SigningInfo signingInfo;
+    // time::milliseconds freshnessPeriod = 10_s;
+    // std::size_t maxSegmentSize = 2048;
+    time::milliseconds interestLifetime = 10000; //DEFAULT_INTEREST_LIFETIME;
+    // int maxRetriesOnTimeoutOrNack = 15;
+    //bool disableVersionDiscovery = true;
+    bool mustBeFresh = false;
     bool isQuiet = false;
     bool isVerbose = false;
     // bool wantShowVersion = false;
@@ -74,7 +74,7 @@ public:
   /**
    * @brief Create the network processing part of function execution
    */
-  Func(Name& funcName, Face& face, KeyChain& keyChain, const Options& opts);
+  Consumer(Name& contentName, Function& funcName, Face& face, const Options& opts);
     
 
   /**
@@ -91,12 +91,6 @@ private:
   //  void
   //  processDiscoveryInterest(const Interest& interest);
 
-  /**
-   * @brief Respond with the requested segment of content
-   */
-  void
-  onInterest(const ndn::InterestFilter& filter, const Interest& interest);
-
   void
   onData(const Interest& interest, const Data& data);
 
@@ -108,19 +102,6 @@ private:
 
   void
   createFile(std::string& outputFilename);
-
-  /**
-   * @brief Split the input stream in data packets and save them to the store
-   *
-   * Create data packets reading all the characters from the input stream until EOF or an
-   * error occurs. Each data packet has a maximum payload size of `m_options.maxSegmentSize`
-   * bytes and is stored in the vector `m_store`. An empty data packet is created and stored
-   * if the input stream is empty.
-   *
-   * @return Number of data packets contained in the store after the operation
-   */
-  void
-  populateStore(std::string& loadFilename, Function& executedFunction);
 
   void
   onNack(const Interest& interest, const lp::Nack& nack);
@@ -141,20 +122,18 @@ private:
 private:
 
 //  Name m_versionedPrefix;
+  Name& m_contentName
   Name& m_funcName;
   Face& m_face;
-  KeyChain& m_keyChain;
   const Options m_options;
 
   Name m_prefix;
   Name m_filename;
   std::map<uint64_t, std::shared_ptr<const Data>> m_receiveBuffer;
   std::vector<uint8_t> m_contentBuffer;
-  std::vector<std::shared_ptr<Data>> m_store;
 
   std::set<uint64_t> m_interestSegmentCounter;
   uint64_t m_incomingFinalBlockNumber;
-  uint64_t m_outgoingFinalBlockNumber;
 };
 
 } // namespace sfc
